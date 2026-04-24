@@ -13,6 +13,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 VIDEO_URL = "https://raw.githubusercontent.com/kayusearn-cpu/bitassests/main/How%20BitAI%20works.mp4" 
 CHANNEL_LINK = "https://t.me/affinity_bitai" 
 DISCORD_LINK = "https://www.discord.gg/bitai"
+WHATSAPP_LINK = "https://wa.me/6589691668"
 
 # Links provided by user
 BITAI_SIGNUP = "https://app.bitai.com.sg/h5/#/pages/sign/sign?invite=888"
@@ -36,12 +37,14 @@ def resource_list_keyboard():
         [InlineKeyboardButton("2️⃣ Binance Account", url=BINANCE_SIGNUP)],
         [InlineKeyboardButton("3️⃣ MAS Regulated Exchange", url=MAS_EXCHANGE)],
         [InlineKeyboardButton("4️⃣ Seminar Registration", url=SEMINAR_LINK)],
+        [InlineKeyboardButton("💬 WhatsApp Support", url=WHATSAPP_LINK)]
     ])
 
 def social_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🌐 Join Discord", url=DISCORD_LINK)],
         [InlineKeyboardButton("📢 Join Telegram", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("💬 WhatsApp Support", url=WHATSAPP_LINK)],
         [InlineKeyboardButton("📘 Setup Guide", url=CHANNEL_LINK)]
     ])
 
@@ -81,7 +84,7 @@ async def user_automation_sequence(context: ContextTypes.DEFAULT_TYPE, chat_id: 
         await asyncio.sleep(60)
         await context.bot.send_message(
             chat_id=chat_id,
-            text="🛠 <b>Essential Resources:</b>\n\nHere are all the links you need to get fully set up and registered:",
+            text="🛠 <b>Essential Resources:</b>\n\nHere are all the links you need to get fully set up and registered. If you have questions, click WhatsApp Support!",
             parse_mode="HTML",
             reply_markup=resource_list_keyboard()
         )
@@ -90,7 +93,7 @@ async def user_automation_sequence(context: ContextTypes.DEFAULT_TYPE, chat_id: 
         await asyncio.sleep(7200)
         await context.bot.send_message(
             chat_id=chat_id,
-            text="🔔 <b>Just a quick reminder!</b>\n\nMake sure you've joined both our Discord and Telegram platforms to stay updated with the latest market analysis.",
+            text="🔔 <b>Just a quick reminder!</b>\n\nMake sure you've joined both our Discord and Telegram platforms. If you need help with your setup, our WhatsApp support is available.",
             parse_mode="HTML",
             reply_markup=social_keyboard()
         )
@@ -108,7 +111,7 @@ async def user_automation_sequence(context: ContextTypes.DEFAULT_TYPE, chat_id: 
             except: pass
             await context.bot.send_message(
                 chat_id=chat_id,
-                text="Quick Links:",
+                text="Quick Links & Support:",
                 reply_markup=resource_list_keyboard()
             )
 
