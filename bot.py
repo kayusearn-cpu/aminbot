@@ -3,7 +3,7 @@ import logging
 import asyncio
 import threading
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes
 from flask import Flask
 
 # 1. Setup Logging
@@ -16,8 +16,8 @@ CHANNEL_LINK = "https://t.me/affinity_bitai"
 # Links provided by user
 BITAI_SIGNUP = "https://app.bitai.com.sg/h5/#/pages/sign/sign?invite=888"
 BINANCE_SIGNUP = "https://accounts.binance.com/en/register?ref=1154159582"
-MAS_EXCHANGE = "https://docs.google.com/forms/d/e/1FAIpQLSet5HhGpsXIcvTLMUFJpbhf7itvv1SZZ6czjtqFq6CP6NjQ3Q/viewform"
-SEMINAR_LINK = "https://www.canva.com/design/DAG-1K3GDAE/n01T22Q9R7zW6l1kEVhaJA/edit"
+MAS_EXCHANGE = "https://www.straitsx.com/"
+SEMINAR_LINK = "https://forms.gle/FsGY9veBN8Y8Y7oQ7"
 
 # 2. Keyboard Builders
 def channel_keyboard():
