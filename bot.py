@@ -10,9 +10,8 @@ from flask import Flask
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # --- CONFIGURATION ---
-# Replace this with your actual video file_id (Get it by sending the video to the bot and checking logs)
-VIDEO_FILE_ID = "YOUR_VIDEO_FILE_ID_HERE" 
-CHANNEL_LINK = "https://t.me/YourChannelUsername" # Replace with your actual channel link
+VIDEO_URL = "https://raw.githubusercontent.com/kayusearn-cpu/bitassests/main/How%20BitAI%20works.mp4" 
+CHANNEL_LINK = "https://t.me/affinity_bitai" 
 
 # Links provided by user
 BITAI_SIGNUP = "https://app.bitai.com.sg/h5/#/pages/sign/sign?invite=888"
@@ -20,143 +19,133 @@ BINANCE_SIGNUP = "https://accounts.binance.com/en/register?ref=1154159582"
 MAS_EXCHANGE = "https://docs.google.com/forms/d/e/1FAIpQLSet5HhGpsXIcvTLMUFJpbhf7itvv1SZZ6czjtqFq6CP6NjQ3Q/viewform"
 SEMINAR_LINK = "https://www.canva.com/design/DAG-1K3GDAE/n01T22Q9R7zW6l1kEVhaJA/edit"
 
-# 2. Content Library
-CONTENT = {
-    "basics": {
-        "text": (
-            "📚 <b>AI Trading Basics</b>\n\n"
-            "<b>Lesson 1: What is Algorithmic Trading?</b>\n"
-            "Algorithmic trading uses computer programs to execute trades based on predefined rules.\n\n"
-            "📌 <b>Key Takeaway:</b> AI removes emotion from trading and replaces it with data-driven rules."
-        )
-    }
-    # ... (Other content categories remain the same as your original code)
-}
+# 2. Keyboard Builders
+def channel_keyboard():
+    return InlineKeyboardMarkup([[InlineKeyboardButton("📢 Join Our Community", url=CHANNEL_LINK)]])
 
-# 3. Keyboard Builders
-def main_menu_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 Join Official Channel", url=CHANNEL_LINK)],
-        [InlineKeyboardButton("📚 AI Trading Basics", callback_data="basics"),
-         InlineKeyboardButton("🤖 How AI Reads Markets", callback_data="reads_markets")],
-        [InlineKeyboardButton("📊 AI Decision Tools", callback_data="decision_tools"),
-         InlineKeyboardButton("🧠 AI Strategy Fundamentals", callback_data="strategy")],
-        [InlineKeyboardButton("📈 Case Studies", callback_data="case_studies"),
-         InlineKeyboardButton("❓ Quiz", callback_data="quiz_start")],
-    ])
+def signup_keyboard():
+    return InlineKeyboardMarkup([[InlineKeyboardButton("🚀 Create My BitAI Account", url=BITAI_SIGNUP)]])
 
 def resource_list_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("1️⃣ Create my FREE BitAI Account!", url=BITAI_SIGNUP)],
-        [InlineKeyboardButton("2️⃣ Create a Free Binance Account", url=BINANCE_SIGNUP)],
-        [InlineKeyboardButton("3️⃣ Register with MAS Regulated Exchange", url=MAS_EXCHANGE)],
-        [InlineKeyboardButton("4️⃣ Sign up for BitAI seminar (FREE)", url=SEMINAR_LINK)],
-        [InlineKeyboardButton("📘 BitAI Setup Guide", url=CHANNEL_LINK)]
+        [InlineKeyboardButton("1️⃣ BitAI Account", url=BITAI_SIGNUP)],
+        [InlineKeyboardButton("2️⃣ Binance Account", url=BINANCE_SIGNUP)],
+        [InlineKeyboardButton("3️⃣ MAS Regulated Exchange", url=MAS_EXCHANGE)],
+        [InlineKeyboardButton("4️⃣ Seminar Registration", url=SEMINAR_LINK)],
     ])
 
-# 4. Automated Delivery Tasks
-async def scheduled_delivery(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
-    """Handles the 3-minute and 5-minute automated messages."""
-    try:
-        # Wait 3 minutes (180 seconds)
-        await asyncio.sleep(180)
-        await context.bot.send_message(
-            chat_id=chat_id,
-            text="🎥 <b>Check out these exclusive videos!</b>\n\nWhile you wait, watch how we set up our AI systems for success.",
-            parse_mode="HTML"
-        )
-        # Attempt to send the video file
-        try:
-            await context.bot.send_video(chat_id=chat_id, video=VIDEO_FILE_ID, caption="BitAI Strategy Walkthrough")
-        except Exception as e:
-            logging.error(f"Failed to send video: {e}. Ensure VIDEO_FILE_ID is correct.")
-            await context.bot.send_message(chat_id=chat_id, text="[Video content is being processed, please check our channel in the meantime!]")
+def social_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("📢 Telegram Channel", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("📘 Setup Guide", url=CHANNEL_LINK)]
+    ])
 
-        # Wait another 2 minutes (Total 5 minutes from start)
-        await asyncio.sleep(120)
+# 3. Automated Sequence Logic
+async def user_automation_sequence(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
+    try:
+        # Phase 1: Join Community Prompt (10 seconds)
+        await asyncio.sleep(10)
         await context.bot.send_message(
             chat_id=chat_id,
-            text=(
-                "🚀 <b>Ready to take the next step?</b>\n\n"
-                "Here is your essential resource list to get started with BitAI today:"
-            ),
+            text="Hold on! 🛑 Before we dive in, make sure you don't miss any updates by joining our official community below:",
+            reply_markup=channel_keyboard()
+        )
+
+        # Phase 2: Video Introduction (15 seconds - total elapsed 25s)
+        await asyncio.sleep(15)
+        await context.bot.send_message(chat_id=chat_id, text="🎥 <b>Introduction to our system by our Co-Founder:</b>", parse_mode="HTML")
+        try:
+            await context.bot.send_video(
+                chat_id=chat_id, 
+                video=VIDEO_URL, 
+                caption="BitAI: Systematic Quantitative Trading",
+                supports_streaming=True
+            )
+        except Exception as e:
+            logging.error(f"Video delivery failed: {e}")
+
+        # Phase 3: Sign Up Link (30 seconds - total elapsed 55s)
+        await asyncio.sleep(30)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="Ready to start your journey? Use the link below to create your account:",
+            reply_markup=signup_keyboard()
+        )
+
+        # Phase 4: Useful Links (1 minute - total elapsed approx 2m)
+        await asyncio.sleep(60)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="🛠 <b>Essential Resources:</b>\n\nHere are all the links you need to get fully set up and registered:",
             parse_mode="HTML",
             reply_markup=resource_list_keyboard()
         )
-    except Exception as e:
-        logging.error(f"Error in scheduled delivery: {e}")
 
-# 5. Command Handlers
+        # Phase 5: Reminder (2 hours)
+        await asyncio.sleep(7200)
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="🔔 <b>Just a quick reminder!</b>\n\nMake sure you've joined our channel and social platforms to stay updated with the latest market analysis.",
+            parse_mode="HTML",
+            reply_markup=social_keyboard()
+        )
+
+        # Phase 6: Eternal 5-hour Loop
+        while True:
+            await asyncio.sleep(18000) # 5 hours
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="🔄 <b>Daily Process Recap:</b>\n\nEnsure your accounts are active and you've watched our strategy walkthrough.",
+                parse_mode="HTML"
+            )
+            try:
+                await context.bot.send_video(chat_id=chat_id, video=VIDEO_URL, caption="Recap: How BitAI Works")
+            except: pass
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text="Quick Links:",
+                reply_markup=resource_list_keyboard()
+            )
+
+    except Exception as e:
+        logging.error(f"Automation sequence error: {e}")
+
+# 4. Command Handlers
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
-    
-    # Welcome Message
-    text = (
-        f"🤖 <b>Welcome to BitAI Learning Hub</b>\n\n"
-        f"I've sent you a special invitation to our <b>Official Channel</b> below. "
-        f"Please join to stay updated with live signals!\n\n"
-        f"🎯 <b>Your learning journey starts now.</b>"
+    welcome_text = (
+        "🤖 <b>BitAI Hub</b>\n\n"
+        "BitAI is a quantitative trading software platform that applies mathematical modeling, "
+        "statistical analysis, and algorithmic execution to help individual traders implement "
+        "systematic approaches in fast-moving digital asset markets."
     )
-    await update.message.reply_text(text, parse_mode="HTML", reply_markup=main_menu_keyboard())
+    await update.message.reply_text(welcome_text, parse_mode="HTML")
     
-    # Trigger the background timer for this user
-    asyncio.create_task(scheduled_delivery(context, chat_id))
+    # Trigger the automated background tasks for this specific user
+    asyncio.create_task(user_automation_sequence(context, chat_id))
 
-async def menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🎯 Choose a topic below to begin learning:",
-        parse_mode="HTML",
-        reply_markup=main_menu_keyboard()
-    )
-
-# (Additional handlers like help_command, about_command, button_handler remain consistent with your logic)
-
-# 6. Callback Query Handler (Simplified)
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if data == "menu":
-        await query.edit_message_text("🎯 Choose a topic:", reply_markup=main_menu_keyboard())
-    elif data in CONTENT:
-        await query.edit_message_text(CONTENT[data]["text"], parse_mode="HTML", 
-                                      reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Back", callback_data="menu")]]))
-    elif data == "quiz_start":
-        await query.edit_message_text("🧠 Starting Quiz...")
-        # (Add your quiz logic here as per original code)
-
-# 7. Flask Health Check
+# 5. Flask Health Check
 flask_app = Flask(__name__)
 @flask_app.route('/')
-def health_check():
-    return "BitAI Learning Hub is running!"
+def health_check(): return "BitAI Automation Running"
 
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    flask_app.run(host="0.0.0.0", port=port)
-
-# 8. Main Runner
+# 6. Main Runner
 async def run_bot():
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
-        logging.error("TELEGRAM_BOT_TOKEN is missing!")
+        logging.error("TELEGRAM_BOT_TOKEN missing!")
         return
 
     application = Application.builder().token(token).build()
-
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("menu", menu_command))
-    application.add_handler(CallbackQueryHandler(button_handler))
     
-    logging.info("BitAI Bot started...")
     await application.initialize()
     await application.start()
     await application.updater.start_polling(drop_pending_updates=True)
     await asyncio.Event().wait()
 
 def main():
-    threading.Thread(target=run_flask, daemon=True).start()
+    threading.Thread(target=lambda: flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000))), daemon=True).start()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
