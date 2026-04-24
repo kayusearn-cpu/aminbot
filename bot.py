@@ -12,6 +12,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 # --- CONFIGURATION ---
 VIDEO_URL = "https://raw.githubusercontent.com/kayusearn-cpu/bitassests/main/How%20BitAI%20works.mp4" 
 CHANNEL_LINK = "https://t.me/affinity_bitai" 
+DISCORD_LINK = "https://www.discord.gg/bitai"
 
 # Links provided by user
 BITAI_SIGNUP = "https://app.bitai.com.sg/h5/#/pages/sign/sign?invite=888"
@@ -20,8 +21,11 @@ MAS_EXCHANGE = "https://www.straitsx.com/"
 SEMINAR_LINK = "https://forms.gle/FsGY9veBN8Y8Y7oQ7"
 
 # 2. Keyboard Builders
-def channel_keyboard():
-    return InlineKeyboardMarkup([[InlineKeyboardButton("📢 Join Our Community", url=CHANNEL_LINK)]])
+def community_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🌐 Official Discord Community", url=DISCORD_LINK)],
+        [InlineKeyboardButton("📢 Telegram Channel", url=CHANNEL_LINK)]
+    ])
 
 def signup_keyboard():
     return InlineKeyboardMarkup([[InlineKeyboardButton("🚀 Create My BitAI Account", url=BITAI_SIGNUP)]])
@@ -36,19 +40,20 @@ def resource_list_keyboard():
 
 def social_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 Telegram Channel", url=CHANNEL_LINK)],
+        [InlineKeyboardButton("🌐 Join Discord", url=DISCORD_LINK)],
+        [InlineKeyboardButton("📢 Join Telegram", url=CHANNEL_LINK)],
         [InlineKeyboardButton("📘 Setup Guide", url=CHANNEL_LINK)]
     ])
 
 # 3. Automated Sequence Logic
 async def user_automation_sequence(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     try:
-        # Phase 1: Join Community Prompt (10 seconds)
+        # Phase 1: Join Communities Prompt (10 seconds)
         await asyncio.sleep(10)
         await context.bot.send_message(
             chat_id=chat_id,
-            text="Hold on! 🛑 Before we dive in, make sure you don't miss any updates by joining our official community below:",
-            reply_markup=channel_keyboard()
+            text="Hold on! 🛑 Before we dive in, make sure you don't miss any updates by joining our official communities below:",
+            reply_markup=community_keyboard()
         )
 
         # Phase 2: Video Introduction (15 seconds - total elapsed 25s)
@@ -85,7 +90,7 @@ async def user_automation_sequence(context: ContextTypes.DEFAULT_TYPE, chat_id: 
         await asyncio.sleep(7200)
         await context.bot.send_message(
             chat_id=chat_id,
-            text="🔔 <b>Just a quick reminder!</b>\n\nMake sure you've joined our channel and social platforms to stay updated with the latest market analysis.",
+            text="🔔 <b>Just a quick reminder!</b>\n\nMake sure you've joined both our Discord and Telegram platforms to stay updated with the latest market analysis.",
             parse_mode="HTML",
             reply_markup=social_keyboard()
         )
