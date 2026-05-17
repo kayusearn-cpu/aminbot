@@ -2,12 +2,12 @@ import os
 import asyncio
 import threading
 import logging
-from flask import Flask
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # -------------------------------------------------------------------
-# Logging (initialise once)
+# Logging
 # -------------------------------------------------------------------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -27,7 +27,7 @@ FAQ_LINK = "https://bitai.app/faq"
 EMAIL_LINK = "mailto:info@bitai.app"
 
 # -------------------------------------------------------------------
-# Step Configuration (exactly as you defined it)
+# Step Configuration
 # -------------------------------------------------------------------
 STEPS = {
     "entry": {
@@ -134,7 +134,7 @@ STEPS = {
 }
 
 # -------------------------------------------------------------------
-# Reminder Loop (unchanged)
+# Reminder Loop
 # -------------------------------------------------------------------
 async def reminder_loop(chat_id: int, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -160,7 +160,7 @@ async def reminder_loop(chat_id: int, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"Reminder loop error for {chat_id}: {e}")
 
 # -------------------------------------------------------------------
-# Helper to send messages (unchanged)
+# Helper to send messages
 # -------------------------------------------------------------------
 async def send_step_message(chat_id: int, step_key: str, context: ContextTypes.DEFAULT_TYPE):
     step_data = STEPS.get(step_key)
@@ -187,7 +187,7 @@ async def send_step_message(chat_id: int, step_key: str, context: ContextTypes.D
         )
 
 # -------------------------------------------------------------------
-# Handlers (unchanged)
+# Telegram Handlers
 # -------------------------------------------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -221,48 +221,80 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_step_message(chat_id, query.data, context)
 
 # -------------------------------------------------------------------
-# Flask health check (production‑ready)
+# Flask Web Server (health + webhook endpoint)
 # -------------------------------------------------------------------
 flask_app = Flask(__name__)
+
+# This will hold the Application instance after it's built
+telegram_app = None
 
 @flask_app.route('/')
 def health():
     return "Bot is actively running!"
 
+@flask_app.route('/webhook', methods=['POST'])
+async def webhook():
+    """Receive Telegram updates via webhook."""
+    global telegram_app
+    if telegram_app is None:
+        return "Bot not initialised", 503
+    data = request.get_json()
+    if data:
+        update = Update.de_json(data, telegram_app.bot)
+        await telegram_app.process_update(update)
+    return "OK"
+
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
-    # debug and reloader must be OFF in production
+    # Production settings – no debug, no reloader
     flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 # -------------------------------------------------------------------
-# Main entry point (completely reworked for reliability)
+# Main Bot (webhook only – NO polling)
 # -------------------------------------------------------------------
 async def main():
+    global telegram_app
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         logger.error("FATAL: TELEGRAM_BOT_TOKEN missing. Bot cannot start.")
         return
 
-    # Build the Application
-    application = Application.builder().token(token).build()
+    # Build the Application with NO updater (webhook only)
+    application = Application.builder().token(token).updater(None).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
+    telegram_app = application
 
-    # Start Flask in a non‑daemon thread (keeps the process alive even if bot loop stops)
+    # Start Flask in a non‑daemon thread
     flask_thread = threading.Thread(target=run_flask, daemon=False)
     flask_thread.start()
     logger.info(f"Flask health server started on port {os.environ.get('PORT', 10000)}")
 
-    # Run the bot
-    logger.info("Starting Telegram Bot polling...")
+    # Give Flask a moment to start listening
+    await asyncio.sleep(1)
+
+    # Set Telegram webhook
+    base_url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip('/')
+    if not base_url:
+        logger.error("FATAL: RENDER_EXTERNAL_URL not set. Cannot configure webhook.")
+        return
+
+    webhook_url = f"{base_url}/webhook"
+    logger.info(f"Setting Telegram webhook to {webhook_url}...")
+    try:
+        await application.bot.set_webhook(url=webhook_url)
+        logger.info("Webhook set successfully!")
+    except Exception as e:
+        logger.error(f"Failed to set webhook: {e}")
+        return
+
+    # Initialise and start the Application (dispatcher, etc.) – no polling!
     await application.initialize()
     await application.start()
-    await application.updater.start_polling(drop_pending_updates=True)
-    logger.info("Bot is ready and listening for updates!")
+    logger.info("Bot is ready and listening via webhook!")
 
     # Keep the bot running forever
     await asyncio.Event().wait()
-
 
 if __name__ == '__main__':
     try:
