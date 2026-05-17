@@ -1,8 +1,6 @@
 import os
 import asyncio
-import threading
 import logging
-from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
@@ -221,89 +219,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_step_message(chat_id, query.data, context)
 
 # -------------------------------------------------------------------
-# Flask Web Server (health + webhook endpoint)
+# Main Polling Bot (no Flask, no webhook – pure polling)
 # -------------------------------------------------------------------
-flask_app = Flask(__name__)
-
-# Global references set in main()
-telegram_app = None
-main_loop = None
-
-@flask_app.route('/')
-def health():
-    return "Bot is actively running!"
-
-@flask_app.route('/webhook', methods=['POST'])
-def webhook():
-    """Synchronous route that schedules the async update processing."""
-    global telegram_app, main_loop
-    if telegram_app is None:
-        return "Bot not initialised", 503
-    data = request.get_json()
-    if data:
-        update = Update.de_json(data, telegram_app.bot)
-        # Schedule the async processing in the main event loop
-        asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), main_loop)
-    return "OK"
-
-def run_flask():
-    port = int(os.environ.get("PORT", 10000))
-    flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
-
-# -------------------------------------------------------------------
-# Main Bot (webhook only – NO polling)
-# -------------------------------------------------------------------
-async def main():
-    global telegram_app, main_loop
+def main():
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         logger.error("FATAL: TELEGRAM_BOT_TOKEN missing. Bot cannot start.")
         return
 
-    # Build the Application with NO updater (webhook only)
-    application = Application.builder().token(token).updater(None).build()
+    # Build the Application
+    application = Application.builder().token(token).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
-    telegram_app = application
 
-    # Save the main event loop so the webhook thread can schedule tasks
-    main_loop = asyncio.get_running_loop()
+    # IMPORTANT: Delete any existing webhook to prevent conflicts
+    async def delete_webhook():
+        await application.bot.delete_webhook()
+        logger.info("Old webhook deleted (if any).")
 
-    # Start Flask in a non‑daemon thread
-    flask_thread = threading.Thread(target=run_flask, daemon=False)
-    flask_thread.start()
-    logger.info(f"Flask health server started on port {os.environ.get('PORT', 10000)}")
+    # Run a small async function to clean the webhook, then start polling
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(delete_webhook())
 
-    # Give Flask a moment to start listening
-    await asyncio.sleep(1)
-
-    # Set Telegram webhook
-    base_url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip('/')
-    if not base_url:
-        logger.error("FATAL: RENDER_EXTERNAL_URL not set. Cannot configure webhook.")
-        return
-
-    webhook_url = f"{base_url}/webhook"
-    logger.info(f"Setting Telegram webhook to {webhook_url}...")
-    try:
-        await application.bot.set_webhook(url=webhook_url)
-        logger.info("Webhook set successfully!")
-    except Exception as e:
-        logger.error(f"Failed to set webhook: {e}")
-        return
-
-    # Initialise and start the Application (dispatcher, etc.) – no polling!
-    await application.initialize()
-    await application.start()
-    logger.info("Bot is ready and listening via webhook!")
-
-    # Keep the bot running forever
-    await asyncio.Event().wait()
+    logger.info("Starting Telegram Bot polling...")
+    # run_polling() will block until the bot is stopped (Ctrl+C or process killed)
+    application.run_polling(drop_pending_updates=True)
+    logger.info("Bot stopped.")
 
 if __name__ == '__main__':
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Bot stopped by user.")
-    except Exception as e:
-        logger.exception(f"Fatal bot error: {e}")
+    main()
