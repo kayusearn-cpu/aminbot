@@ -225,35 +225,36 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # -------------------------------------------------------------------
 flask_app = Flask(__name__)
 
-# This will hold the Application instance after it's built
+# Global references set in main()
 telegram_app = None
+main_loop = None
 
 @flask_app.route('/')
 def health():
     return "Bot is actively running!"
 
 @flask_app.route('/webhook', methods=['POST'])
-async def webhook():
-    """Receive Telegram updates via webhook."""
-    global telegram_app
+def webhook():
+    """Synchronous route that schedules the async update processing."""
+    global telegram_app, main_loop
     if telegram_app is None:
         return "Bot not initialised", 503
     data = request.get_json()
     if data:
         update = Update.de_json(data, telegram_app.bot)
-        await telegram_app.process_update(update)
+        # Schedule the async processing in the main event loop
+        asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), main_loop)
     return "OK"
 
 def run_flask():
     port = int(os.environ.get("PORT", 10000))
-    # Production settings – no debug, no reloader
     flask_app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 # -------------------------------------------------------------------
 # Main Bot (webhook only – NO polling)
 # -------------------------------------------------------------------
 async def main():
-    global telegram_app
+    global telegram_app, main_loop
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         logger.error("FATAL: TELEGRAM_BOT_TOKEN missing. Bot cannot start.")
@@ -264,6 +265,9 @@ async def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
     telegram_app = application
+
+    # Save the main event loop so the webhook thread can schedule tasks
+    main_loop = asyncio.get_running_loop()
 
     # Start Flask in a non‑daemon thread
     flask_thread = threading.Thread(target=run_flask, daemon=False)
